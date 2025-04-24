@@ -1,0 +1,233 @@
+{
+  "id": "template_defi_portfolio_optimization_v1",
+  "name": "DeFi Portfolio Optimization",
+  "description": "Analyzes current DeFi portfolio and provides optimization recommendations based on risk preferences and market conditions",
+  "version": "1.0.0",
+  "author": "WALEMCP",
+  "category": "defi",
+  "inputs": [
+    {
+      "name": "wallet_address",
+      "type": "address",
+      "description": "Solana wallet address to analyze",
+      "required": true
+    },
+    {
+      "name": "risk_profile",
+      "type": "string",
+      "description": "Risk tolerance (conservative, moderate, aggressive)",
+      "required": true,
+      "validation": {
+        "allowedValues": ["conservative", "moderate", "aggressive"]
+      }
+    },
+    {
+      "name": "investment_horizon",
+      "type": "string",
+      "description": "Investment time horizon (short, medium, long)",
+      "required": true,
+      "validation": {
+        "allowedValues": ["short", "medium", "long"]
+      }
+    },
+    {
+      "name": "excluded_protocols",
+      "type": "array",
+      "description": "Protocols to exclude from recommendations",
+      "required": false
+    },
+    {
+      "name": "max_slippage",
+      "type": "number",
+      "description": "Maximum slippage tolerance (percentage)",
+      "required": false,
+      "default": 0.5,
+      "validation": {
+        "min": 0.1,
+        "max": 5.0
+      }
+    }
+  ],
+  "outputs": [
+    {
+      "name": "current_portfolio",
+      "type": "object",
+      "description": "Current portfolio composition and metrics"
+    },
+    {
+      "name": "recommendations",
+      "type": "array",
+      "description": "List of recommended portfolio adjustments"
+    },
+    {
+      "name": "expected_performance",
+      "type": "object",
+      "description": "Expected performance metrics for recommended portfolio"
+    },
+    {
+      "name": "risk_analysis",
+      "type": "object",
+      "description": "Risk analysis for current and recommended portfolio"
+    }
+  ],
+  "steps": [
+    {
+      "id": "fetch_wallet_data",
+      "name": "Fetch Wallet Data",
+      "type": "solana_transaction",
+      "description": "Fetch on-chain data for the provided wallet address",
+      "inputs": [
+        {
+          "name": "address",
+          "source": "user_input",
+          "sourceReference": "wallet_address"
+        }
+      ],
+      "outputs": [
+        {
+          "name": "wallet_data",
+          "mapping": "result"
+        }
+      ],
+      "config": {
+        "method": "getTokenAccountsByOwner",
+        "includeSOL": true,
+        "includeNFTs": false
+      }
+    },
+    {
+      "id": "analyze_current_portfolio",
+      "name": "Analyze Current Portfolio",
+      "type": "ai_analysis",
+      "description": "Analyze current portfolio composition and performance",
+      "inputs": [
+        {
+          "name": "wallet_data",
+          "source": "previous_step",
+          "sourceReference": "fetch_wallet_data.wallet_data"
+        },
+        {
+          "name": "risk_profile",
+          "source": "user_input",
+          "sourceReference": "risk_profile"
+        }
+      ],
+      "outputs": [
+        {
+          "name": "current_portfolio",
+          "mapping": "portfolio"
+        },
+        {
+          "name": "portfolio_metrics",
+          "mapping": "metrics"
+        }
+      ],
+      "config": {
+        "analysis_type": "portfolio_composition",
+        "include_historical": true,
+        "timeframe": "30d"
+      }
+    },
+    {
+      "id": "fetch_market_data",
+      "name": "Fetch Market Data",
+      "type": "api_call",
+      "description": "Fetch current market data for relevant tokens",
+      "inputs": [
+        {
+          "name": "tokens",
+          "source": "previous_step",
+          "sourceReference": "analyze_current_portfolio.current_portfolio.tokens"
+        }
+      ],
+      "outputs": [
+        {
+          "name": "market_data",
+          "mapping": "result"
+        }
+      ],
+      "config": {
+        "api": "defi_data_provider",
+        "endpoint": "market/tokens",
+        "method": "GET"
+      }
+    },
+    {
+      "id": "generate_recommendations",
+      "name": "Generate Portfolio Recommendations",
+      "type": "ai_analysis",
+      "description": "Generate portfolio optimization recommendations",
+      "inputs": [
+        {
+          "name": "current_portfolio",
+          "source": "previous_step",
+          "sourceReference": "analyze_current_portfolio.current_portfolio"
+        },
+        {
+          "name": "portfolio_metrics",
+          "source": "previous_step",
+          "sourceReference": "analyze_current_portfolio.portfolio_metrics"
+        },
+        {
+          "name": "market_data",
+          "source": "previous_step",
+          "sourceReference": "fetch_market_data.market_data"
+        },
+        {
+          "name": "risk_profile",
+          "source": "user_input",
+          "sourceReference": "risk_profile"
+        },
+        {
+          "name": "investment_horizon",
+          "source": "user_input",
+          "sourceReference": "investment_horizon"
+        },
+        {
+          "name": "excluded_protocols",
+          "source": "user_input",
+          "sourceReference": "excluded_protocols"
+        }
+      ],
+      "outputs": [
+        {
+          "name": "recommendations",
+          "mapping": "recommendations"
+        },
+        {
+          "name": "expected_performance",
+          "mapping": "expected_performance"
+        },
+        {
+          "name": "risk_analysis",
+          "mapping": "risk_analysis"
+        }
+      ],
+      "config": {
+        "optimization_strategy": "modern_portfolio_theory",
+        "max_recommendations": 5,
+        "include_reasoning": true
+      }
+    }
+  ],
+  "permissions": [
+    {
+      "type": "data_access",
+      "description": "Read-only access to wallet token accounts",
+      "scope": "wallet_token_accounts_read"
+    },
+    {
+      "type": "api_access",
+      "description": "Access to market data APIs",
+      "scope": "market_data_read"
+    }
+  ],
+  "metadata": {
+    "display_name": "DeFi Portfolio Optimizer",
+    "icon": "chart-line",
+    "color": "#4F46E5",
+    "tags": ["defi", "portfolio", "optimization", "solana"],
+    "recommended_for": ["investors", "traders", "defi_users"],
+    "estimated_execution_time": 10000
+  }
+} 

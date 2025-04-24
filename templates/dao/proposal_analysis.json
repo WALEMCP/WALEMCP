@@ -1,0 +1,342 @@
+{
+  "id": "template_dao_proposal_analysis_v1",
+  "name": "DAO Proposal Analysis",
+  "description": "Analyzes DAO proposals and generates multilingual summaries, impact assessments, and voting recommendations",
+  "version": "1.0.0",
+  "author": "WALEMCP",
+  "category": "dao",
+  "inputs": [
+    {
+      "name": "dao_address",
+      "type": "address",
+      "description": "Solana DAO address",
+      "required": true
+    },
+    {
+      "name": "proposal_id",
+      "type": "string",
+      "description": "Identifier of the proposal to analyze",
+      "required": true
+    },
+    {
+      "name": "languages",
+      "type": "array",
+      "description": "Languages for translated summaries",
+      "required": false,
+      "default": ["en"]
+    },
+    {
+      "name": "user_stake",
+      "type": "object",
+      "description": "User's stake and preferences in the DAO",
+      "required": false
+    },
+    {
+      "name": "analysis_depth",
+      "type": "string",
+      "description": "Depth of analysis (basic, standard, detailed)",
+      "required": false,
+      "default": "standard",
+      "validation": {
+        "allowedValues": ["basic", "standard", "detailed"]
+      }
+    }
+  ],
+  "outputs": [
+    {
+      "name": "proposal_summary",
+      "type": "object",
+      "description": "Structured summary of the proposal"
+    },
+    {
+      "name": "translations",
+      "type": "object",
+      "description": "Translated summaries in requested languages"
+    },
+    {
+      "name": "impact_analysis",
+      "type": "object",
+      "description": "Analysis of proposal's impact on the DAO"
+    },
+    {
+      "name": "voting_trends",
+      "type": "object",
+      "description": "Current voting trends and statistics"
+    },
+    {
+      "name": "recommendation",
+      "type": "object",
+      "description": "Personalized voting recommendation based on user stake"
+    }
+  ],
+  "steps": [
+    {
+      "id": "fetch_dao_data",
+      "name": "Fetch DAO Data",
+      "type": "solana_transaction",
+      "description": "Fetch on-chain data for the DAO",
+      "inputs": [
+        {
+          "name": "dao_address",
+          "source": "user_input",
+          "sourceReference": "dao_address"
+        }
+      ],
+      "outputs": [
+        {
+          "name": "dao_data",
+          "mapping": "result"
+        }
+      ],
+      "config": {
+        "method": "getAccountInfo",
+        "includePrograms": ["spl-governance"]
+      }
+    },
+    {
+      "id": "fetch_proposal",
+      "name": "Fetch Proposal Data",
+      "type": "solana_transaction",
+      "description": "Fetch the specific proposal data",
+      "inputs": [
+        {
+          "name": "dao_address",
+          "source": "user_input",
+          "sourceReference": "dao_address"
+        },
+        {
+          "name": "proposal_id",
+          "source": "user_input",
+          "sourceReference": "proposal_id"
+        }
+      ],
+      "outputs": [
+        {
+          "name": "proposal_data",
+          "mapping": "result"
+        }
+      ],
+      "config": {
+        "method": "getProposalByKey"
+      }
+    },
+    {
+      "id": "fetch_voting_data",
+      "name": "Fetch Current Voting Data",
+      "type": "solana_transaction",
+      "description": "Fetch current voting status and history",
+      "inputs": [
+        {
+          "name": "dao_address",
+          "source": "user_input",
+          "sourceReference": "dao_address"
+        },
+        {
+          "name": "proposal_id",
+          "source": "user_input",
+          "sourceReference": "proposal_id"
+        }
+      ],
+      "outputs": [
+        {
+          "name": "voting_data",
+          "mapping": "result"
+        }
+      ],
+      "config": {
+        "method": "getProposalVoteRecords"
+      }
+    },
+    {
+      "id": "analyze_proposal",
+      "name": "Analyze Proposal Content",
+      "type": "ai_analysis",
+      "description": "Analyze proposal content and generate structured summary",
+      "inputs": [
+        {
+          "name": "proposal_data",
+          "source": "previous_step",
+          "sourceReference": "fetch_proposal.proposal_data"
+        },
+        {
+          "name": "dao_data",
+          "source": "previous_step",
+          "sourceReference": "fetch_dao_data.dao_data"
+        },
+        {
+          "name": "analysis_depth",
+          "source": "user_input",
+          "sourceReference": "analysis_depth"
+        }
+      ],
+      "outputs": [
+        {
+          "name": "proposal_summary",
+          "mapping": "summary"
+        },
+        {
+          "name": "proposal_type",
+          "mapping": "type"
+        },
+        {
+          "name": "key_entities",
+          "mapping": "entities"
+        }
+      ],
+      "config": {
+        "analysis_type": "proposal_content",
+        "extract_entities": true,
+        "summarize_length": "medium"
+      }
+    },
+    {
+      "id": "translate_summary",
+      "name": "Translate Proposal Summary",
+      "type": "ai_analysis",
+      "description": "Generate translations of the proposal summary",
+      "inputs": [
+        {
+          "name": "proposal_summary",
+          "source": "previous_step",
+          "sourceReference": "analyze_proposal.proposal_summary"
+        },
+        {
+          "name": "languages",
+          "source": "user_input",
+          "sourceReference": "languages"
+        }
+      ],
+      "outputs": [
+        {
+          "name": "translations",
+          "mapping": "translations"
+        }
+      ],
+      "config": {
+        "preserve_formatting": true,
+        "quality_level": "high"
+      }
+    },
+    {
+      "id": "analyze_impact",
+      "name": "Analyze Proposal Impact",
+      "type": "ai_analysis",
+      "description": "Analyze potential impact of the proposal on the DAO",
+      "inputs": [
+        {
+          "name": "proposal_summary",
+          "source": "previous_step",
+          "sourceReference": "analyze_proposal.proposal_summary"
+        },
+        {
+          "name": "dao_data",
+          "source": "previous_step",
+          "sourceReference": "fetch_dao_data.dao_data"
+        },
+        {
+          "name": "proposal_type",
+          "source": "previous_step",
+          "sourceReference": "analyze_proposal.proposal_type"
+        }
+      ],
+      "outputs": [
+        {
+          "name": "impact_analysis",
+          "mapping": "impact"
+        }
+      ],
+      "config": {
+        "assess_categories": ["financial", "governance", "community", "technical"],
+        "time_horizons": ["short_term", "medium_term", "long_term"]
+      }
+    },
+    {
+      "id": "analyze_voting",
+      "name": "Analyze Voting Trends",
+      "type": "data_transformation",
+      "description": "Analyze current voting trends and statistics",
+      "inputs": [
+        {
+          "name": "voting_data",
+          "source": "previous_step",
+          "sourceReference": "fetch_voting_data.voting_data"
+        },
+        {
+          "name": "dao_data",
+          "source": "previous_step",
+          "sourceReference": "fetch_dao_data.dao_data"
+        }
+      ],
+      "outputs": [
+        {
+          "name": "voting_trends",
+          "mapping": "trends"
+        }
+      ],
+      "config": {
+        "calculate_quorum": true,
+        "calculate_thresholds": true,
+        "include_historical": true
+      }
+    },
+    {
+      "id": "generate_recommendation",
+      "name": "Generate Voting Recommendation",
+      "type": "ai_analysis",
+      "description": "Generate personalized voting recommendation",
+      "inputs": [
+        {
+          "name": "proposal_summary",
+          "source": "previous_step",
+          "sourceReference": "analyze_proposal.proposal_summary"
+        },
+        {
+          "name": "impact_analysis",
+          "source": "previous_step",
+          "sourceReference": "analyze_impact.impact_analysis"
+        },
+        {
+          "name": "user_stake",
+          "source": "user_input",
+          "sourceReference": "user_stake"
+        }
+      ],
+      "outputs": [
+        {
+          "name": "recommendation",
+          "mapping": "recommendation"
+        }
+      ],
+      "config": {
+        "include_reasoning": true,
+        "recommendation_format": "detailed",
+        "condition": "user_stake !== null && user_stake !== undefined"
+      }
+    }
+  ],
+  "permissions": [
+    {
+      "type": "data_access",
+      "description": "Read-only access to DAO governance data",
+      "scope": "dao_governance_read"
+    },
+    {
+      "type": "data_access",
+      "description": "Read-only access to proposal data",
+      "scope": "dao_proposal_read"
+    },
+    {
+      "type": "data_access",
+      "description": "Read-only access to voting data",
+      "scope": "dao_voting_read"
+    }
+  ],
+  "metadata": {
+    "display_name": "DAO Proposal Analyzer",
+    "icon": "vote-yea",
+    "color": "#10B981",
+    "tags": ["dao", "governance", "voting", "solana"],
+    "recommended_for": ["dao_members", "governance_participants", "community_managers"],
+    "estimated_execution_time": 15000
+  }
+} 
