@@ -129,7 +129,7 @@ The typical flow for WALEMCP task execution is:
 
 ```bash
 # Clone the repository
-git clone https://github.com/yourusername/WALEMCP
+git clone https://github.com/WALEMCP/WALEMCP.git
 cd WALEMCP
 
 # Install dependencies
